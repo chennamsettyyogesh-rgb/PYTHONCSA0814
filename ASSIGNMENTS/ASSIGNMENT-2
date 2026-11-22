@@ -1,1 +1,191 @@
 
+from functools import lru_cache
+from time import perf_counter
+
+
+# Q1: Electricity Subsidy
+def subsidy(units, ration_card, senior_over_80):
+    if units < 0:
+        raise ValueError("Units cannot be negative")
+    if units <= 100:
+        return "Full subsidy"
+    if units <= 200:
+        return "Partial subsidy" if ration_card else "No subsidy"
+    return "Special subsidy" if senior_over_80 else "No subsidy"
+
+
+# Q2: OTP Verification
+def verify_otp(entries, correct="2468"):
+    attempts = 0
+    for entry in entries:
+        entry = entry.strip()
+        if not entry:
+            continue
+        attempts += 1
+        if entry == correct:
+            return "OTP verified", attempts
+        if attempts == 3:
+            return "Account locked for 30 minutes", attempts
+    return "More input required", attempts
+
+
+# Q3: Vehicle Registration Validator
+def vehicle_registration(text):
+    number = text.strip().replace(" ", "").replace("-", "").upper()
+    if len(number) not in (9, 10):
+        return None
+
+    state = number[:2]
+    district = number[2:4]
+    series = number[4:-4]
+    last = number[-4:]
+
+    if not (state.isascii() and state.isalpha()
+            and district.isascii() and district.isdigit()
+            and series.isascii() and series.isalpha()
+            and last.isascii() and last.isdigit()):
+        return None
+
+    return f"{state} {district} {series} {last}"
+
+
+# Q4: String Concatenation vs Join
+def build_plus(parts):
+    result = ""
+    for part in parts:
+        result += part + ";"
+    return result
+
+
+def build_join(parts):
+    return ";".join(parts) + (";" if parts else "")
+
+
+# Q5: Functions, Parameters and Scope
+def add_item(item, order=None):
+    if order is None:
+        order = []
+    order.append(item)
+    return order
+
+
+def bill(price, quantity=1):
+    total = price * quantity
+    return total, total * 0.05
+
+
+def make_counter():
+    count = 0
+
+    def increase():
+        nonlocal count
+        count += 1
+        return count
+
+    return increase
+
+
+# Q6: Recursion and Its Limits
+def ways_naive(n):
+    if n <= 1:
+        return 1
+    return ways_naive(n - 1) + ways_naive(n - 2)
+
+
+@lru_cache(maxsize=None)
+def ways_memo(n):
+    if n <= 1:
+        return 1
+    return ways_memo(n - 1) + ways_memo(n - 2)
+
+
+def ways_iterative(n):
+    if n < 0:
+        raise ValueError("Steps cannot be negative")
+
+    a, b = 1, 1
+    for _ in range(n):
+        a, b = b, a + b
+    return a
+
+
+# Q7: Diagnose and Redesign
+def run():
+    print("ASSIGNMENT 2 - Q1 TO Q7")
+
+    print("\nQ1: Electricity subsidy")
+    cases = [
+        (99, False, False),
+        (100, True, False),
+        (101, True, False),
+        (150, False, False),
+        (200, True, False),
+        (201, False, True),
+        (250, True, False),
+        (80, False, True)
+    ]
+
+    for units, ration, senior in cases:
+        print(f"{units} units -> {subsidy(units, ration, senior)}")
+
+    print("\nQ2: OTP attempts")
+    for entries in [
+        ["", "1111", "2468"],
+        ["1111", "", "2222", "3333"]
+    ]:
+        print(f"{entries} -> {verify_otp(entries)}")
+
+    print("\nQ3: Vehicle registration validation")
+    for raw in [
+        "tn 09 ab 1234",
+        "KA-01-A-0001",
+        "123-invalid"
+    ]:
+        print(f"{raw!r} -> {vehicle_registration(raw) or 'Invalid registration'}")
+
+    print("\nQ4: Concatenation versus join")
+    parts = [f"Item{i}:Rs{i % 50}" for i in range(1000)]
+
+    assert build_plus(parts) == build_join(parts)
+    print("Both approaches produce identical text for 1000 items.")
+
+    for name, func in [("+=", build_plus), ("join", build_join)]:
+        start = perf_counter()
+        for _ in range(3):
+            func(parts)
+        elapsed = (perf_counter() - start) / 3 * 1000
+        print(f"{name}: {elapsed:.3f} ms average")
+
+    print("\nQ5: Functions, parameters and scope")
+    print("Independent orders:",
+          add_item("Tea"),
+          add_item("Vada"),
+          add_item("Coffee"))
+
+    print("Bill total and 5% charge:", bill(50, quantity=2))
+
+    counter = make_counter()
+    print("Nonlocal counter:", counter(), counter())
+
+    print("\nQ6: Staircase recursion")
+    for n in (5, 10, 20):
+        assert ways_naive(n) == ways_memo(n) == ways_iterative(n)
+        print(f"{n} steps -> {ways_iterative(n)} ways")
+
+    print("1000 steps ->",
+          len(str(ways_iterative(1000))),
+          "digits in number of ways")
+
+    print("\nQ7: Diagnose and redesign string building")
+    sample = [f"Call {i}" for i in range(10000)]
+
+    assert build_plus(sample) == build_join(sample)
+    print("Validated: original += and redesigned join return identical output.")
+    print("Redesign: collect parts in a list, then join once.")
+
+    print("\nALL SEVEN QUESTIONS EXECUTED SUCCESSFULLY")
+
+
+if __name__ == "__main__":
+    run()
+
