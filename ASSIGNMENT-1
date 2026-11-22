@@ -1,1 +1,112 @@
+#    Milk co-operative rate calculator
+from decimal import Decimal, ROUND_HALF_UP
 
+# Constants
+BASE_RATE = Decimal("32.00")
+FAT_STEP_VALUE = Decimal("0.45")
+SNF_STEP_VALUE = Decimal("0.30")
+
+FAT_STANDARD = Decimal("3.5")
+SNF_STANDARD = Decimal("8.5")
+STEP_SIZE = Decimal("0.1")
+
+BONUS_THRESHOLD = Decimal("500")
+BONUS_PER_LITRE = Decimal("0.50")
+
+
+# Round money to 2 decimal places
+def money(value):
+    return Decimal(value).quantize(
+        Decimal("0.01"),
+        rounding=ROUND_HALF_UP
+    )
+
+
+# Calculate the number of steps
+def steps(reading, standard):
+    raw = (Decimal(str(reading)) - standard) / STEP_SIZE
+
+    return int(
+        raw.quantize(
+            Decimal("1"),
+            rounding=ROUND_HALF_UP
+        )
+    )
+
+
+# Calculate rate per litre
+def rate_per_litre(fat, snf, season="Apr-Jun"):
+
+    if season == "Apr-Jun":
+        base = BASE_RATE
+        fat_value = FAT_STEP_VALUE
+
+    else:
+        base = Decimal("30.00")
+        fat_value = Decimal("0.40")
+
+    rate = (
+        base
+        + steps(fat, FAT_STANDARD) * fat_value
+        + steps(snf, SNF_STANDARD) * SNF_STEP_VALUE
+    )
+
+    return money(rate)
+
+
+# Calculate payment for one delivery
+def payout(litres, fat, snf, season="Apr-Jun"):
+
+    rate = rate_per_litre(fat, snf, season)
+
+    return money(
+        Decimal(str(litres)) * rate
+    )
+
+
+# Calculate 10-day total and bonus
+def ten_day_total(entries, season="Apr-Jun"):
+
+    total_litres = sum(
+        (Decimal(str(e[0])) for e in entries),
+        Decimal("0")
+    )
+
+    base_total = sum(
+        (payout(*e, season) for e in entries),
+        Decimal("0.00")
+    )
+
+    if total_litres > BONUS_THRESHOLD:
+        bonus = money(total_litres * BONUS_PER_LITRE)
+    else:
+        bonus = Decimal("0.00")
+
+    grand_total = money(base_total + bonus)
+
+    return money(base_total), total_litres, bonus, grand_total
+
+
+# Main program
+if __name__ == "__main__":
+
+    entries = [
+        (10, 3.5, 8.5),
+        (8.5, 4.2, 8.7),
+        (12, 3.1, 8.3)
+    ]
+
+    for litres, fat, snf in entries:
+
+        rate = rate_per_litre(fat, snf)
+
+        print(
+            f"{litres:5} L "
+            f"fat {fat:.2f} "
+            f"snf {snf:.2f} "
+            f"rate {rate:.2f} "
+            f"pay {payout(litres, fat, snf):.2f}"
+        )
+
+    print("10-day summary:", ten_day_total(entries))
+ 
